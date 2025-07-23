@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+streamlit
+qdrant-client
+PyPDF2
+transformers
+sentence-transformers
+torch
