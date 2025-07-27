@@ -1,6 +1,3 @@
-<<<<<<< HEAD:README.md
-=======
-
 # Document-based RAG Chatbot
 
 ## Objective
@@ -33,19 +30,24 @@ Build a chatbot capable of answering user queries strictly based on the content 
 ### Installation Steps
 1. **Clone the repository:**
    ```bash
-   git clone <your-repo-url>
-   cd rag_chatbot
+   git clone https://github.com/ragulg06/RAP-RAG.git
+   cd RAP-RAG
    ```
 2. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 3. **Download models:**
-   - Place the LLM and embedding models in the `models/` directory as described below.
-   - All models are open-source and must be downloaded before running (no internet required at runtime).
+   ```bash
+   # Download the LLM model (StableLM Zephyr 3B)
+   python models/download_llm.py
+   
+   # Download the embedding model (MiniLM-L6-v2)
+   python models/download_embeddings.py
+   ```
+   - These scripts will automatically download and save the models to the `models/` directory.
+   - All models are open-source and will be cached locally (no internet required at runtime).
 
-4. **Prepare your documents:**
-   - Place your PDF and Word files in the `data/` directory.
 
 ---
 
@@ -73,7 +75,7 @@ graph TD;
     UI -->|Send Query| Backend["FastAPI Backend"]
     Backend -->|Embed Query| Embedder["MiniLM-L6-v2 Embedding Model"]
     Embedder -->|Vector| Qdrant["Qdrant Vector DB"]
-    Qdrant -->|Top-k Chunks| Backend
+    Qdrant -->|Top-1 Chunk| Backend
     Backend -->|Context + Query| LLM["StableLM Zephyr 3B (8-bit)"]
     LLM -->|Answer| Backend
     Backend -->|Answer + Source| UI
@@ -83,35 +85,38 @@ graph TD;
 - **Document Loader:** Loads and chunks PDF/Word files, extracting text and metadata (filename, page, chunk ID).
 - **Embedder:** Uses MiniLM-L6-v2 to embed chunks and queries.
 - **Vector Store:** Qdrant stores chunk embeddings and metadata.
-- **Retriever:** On each query, retrieves top-k relevant chunks (one DB query per question).
+- **Retriever:** On each query, retrieves top-1 relevant chunk (one DB query per question).
 - **LLM:** StableLM Zephyr 3B (8-bit, quantized for memory efficiency) generates answers strictly from retrieved context.
 - **UI:** Streamlit interface for uploads and chat.
 
 ---
 
 ## Chunking Strategy & Justification
-- **Method:** Documents are split into overlapping text chunks (e.g., 500 tokens with 50-token overlap) using a sliding window.
+- **Method:** Documents are split into overlapping text chunks (512 characters with 50-character overlap) using semantic boundaries.
 - **Justification:**
   - Overlapping chunks ensure context continuity for answers spanning chunk boundaries.
   - Chunk size balances retrieval granularity and LLM context window limits.
   - Each chunk is tagged with filename, page number, and chunk ID for precise source citation.
+  - Semantic chunking at sentence boundaries preserves meaning better than fixed-size chunks.
 
 ---
 
 ## Retrieval Approach
 - **Single vector DB query per user question** (enforced in code).
-- **Metadata filtering** can be applied (e.g., by document type or section).
-- **Top-k chunks** are passed to the LLM as context.
+- **Top-1 retrieval** - Returns only the most relevant chunk for cleaner output.
+- **Cosine similarity** used for vector matching in Qdrant.
 - **LLM is instructed to answer only from the provided context** and to state "Answer not found in the document" if the answer is not present.
+- **Source deduplication** ensures clean, non-repetitive source citations.
 
 ---
 
 ## Hardware Usage & Optimization
 - **LLM loaded in 8-bit mode** (using bitsandbytes) to fit within 16GB GPU memory (Tesla T4 compatible).
-- **Embedding model is lightweight (MiniLM-L6-v2)**.
+- **Embedding model is lightweight (MiniLM-L6-v2)** with 384-dimensional vectors.
 - **Memory usage is monitored and printed at startup.**
 - **No internet required at runtime** (all models and data are local).
 - **Tested on local system with 16GB GPU; resource usage documented in code and logs.**
+- **GPU memory optimization** with automatic cache clearing between operations.
 
 ---
 
@@ -120,6 +125,8 @@ graph TD;
 - **Source citation:** Each answer includes filename, page, and chunk ID.
 - **No external API calls or LangChain used.**
 - **All dependencies are open-source and locally cached.**
+- **Clean output format** with only answer and single most relevant source.
+- **Automatic filename generation** for uploaded documents to avoid generic "file" names.
 
 ---
 
@@ -134,7 +141,7 @@ graph TD;
 
 ## How to Reproduce
 1. Clone the repo and install dependencies.
-2. Download and place all required models in `models/`.
+2. Run the model download scripts to get the required models.
 3. Place your documents in `data/`.
 4. Run `python run.py`.
 5. Use the Streamlit UI to interact with the chatbot.
@@ -142,7 +149,8 @@ graph TD;
 ---
 
 ## Demo Video
-- [Insert your demo video link here]
+- **Demo Video Link:** [https://youtu.be/501qRrCVDcs](https://youtu.be/501qRrCVDcs)
+- **Repository Link:** [https://github.com/ragulg06/RAP-RAG.git](https://github.com/ragulg06/RAP-RAG.git)
 
 ---
 
@@ -153,8 +161,31 @@ graph TD;
 
 ---
 
-## Bonus: Production Architecture (Optional)
-- [Describe your production-ready architecture here, if implemented.]
+## Bonus: Production Architecture
+
+The following diagram shows a production-ready architecture for scaling this RAG chatbot to enterprise-level deployment:
+
+![Production Architecture](production_level_architect.png)
+
+**Key Production Features:**
+- **Multi-region deployment** with AWS services for global scalability
+- **Load balancing** and auto-scaling for high availability
+- **Microservices architecture** with API Gateway and service mesh
+- **Event-driven processing** with message queues for document ingestion
+- **Advanced security** with OAuth2, RBAC, and encryption
+- **Comprehensive monitoring** with Prometheus, Grafana, and ELK stack
+- **Disaster recovery** with automated failover and backup systems
+- **Compliance** with GDPR, SOC 2, and data residency requirements
+
+**AWS Services Utilized:**
+- **Compute:** EKS (Kubernetes), Lambda, EC2
+- **Storage:** S3, RDS, ElastiCache
+- **Networking:** VPC, ALB, CloudFront, Route 53
+- **Security:** IAM, Secrets Manager, WAF, Shield
+- **Monitoring:** CloudWatch, X-Ray, GuardDuty
+- **Analytics:** Kinesis, EMR, Athena
+
+This architecture demonstrates how the local RAG chatbot can be transformed into a scalable, secure, and compliant enterprise solution.
 
 ---
 
@@ -165,5 +196,4 @@ graph TD;
 
 ## License
 - See `models/stablelm-zephyr-3b/LICENSE.md` for model license.
-- All other code is open-source under the MIT License. 
->>>>>>> 941d991 (Commit before rebase):READMEw.md
+- All other code is open-source under the MIT License.
