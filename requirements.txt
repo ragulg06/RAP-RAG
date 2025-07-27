@@ -3,6 +3,10 @@ uvicorn
 streamlit
 qdrant-client
 PyPDF2
+python-docx
 transformers
 sentence-transformers
 torch
+bitsandbytes
+psutil
+pydantic
